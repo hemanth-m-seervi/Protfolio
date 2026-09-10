@@ -1,8 +1,67 @@
-import {Router} from 'express';import argon2 from 'argon2';import {rateLimit} from 'express-rate-limit';import User from '../models/User.js';import {issueSession,requireAuth} from '../middleware/auth.js';
-const r=Router();const limiter=rateLimit({windowMs:15*60*1000,limit:10,standardHeaders:true,legacyHeaders:false});
-r.get('/status',async(_q,res)=>res.json({setupRequired:await User.countDocuments()===0}));
-r.post('/setup',limiter,async(req,res)=>{if(await User.countDocuments())return res.status(409).json({error:'Admin already configured'});const{email,password}=req.body;if(!email||!password||password.length<10)return res.status(400).json({error:'Use a valid email and a password of at least 10 characters'});const user=await User.create({email,passwordHash:await argon2.hash(password)});issueSession(res,user);res.status(201).json({email:user.email})});
-r.post('/login',limiter,async(req,res)=>{const user=await User.findOne({email:String(req.body.email||'').toLowerCase()});if(!user||!await argon2.verify(user.passwordHash,String(req.body.password||'')))return res.status(401).json({error:'Invalid credentials'});issueSession(res,user);res.json({email:user.email})});
-r.get('/me',requireAuth,(req,res)=>res.json({email:req.user.email}));
-r.post('/change-password',requireAuth,async(req,res)=>{const{currentPassword,newPassword}=req.body;if(newPassword?.length<10||!await argon2.verify(req.user.passwordHash,currentPassword||''))return res.status(400).json({error:'Current password is incorrect or new password is too short'});req.user.passwordHash=await argon2.hash(newPassword);req.user.sessionVersion+=1;await req.user.save();issueSession(res,req.user);res.json({ok:true})});
-r.post('/logout',(req,res)=>{res.clearCookie('portfolio_session');res.json({ok:true})});export default r;
+import { Router } from "express";
+import argon2 from "argon2";
+import { rateLimit } from "express-rate-limit";
+import User from "../models/User.js";
+import { issueSession, requireAuth } from "../middleware/auth.js";
+const r = Router();
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+r.get("/status", async (_q, res) =>
+  res.json({ setupRequired: (await User.countDocuments()) === 0 }),
+);
+r.post("/setup", limiter, async (req, res) => {
+  if (await User.countDocuments())
+    return res.status(409).json({ error: "Admin already configured" });
+  const { email, password } = req.body;
+  if (!email || !password || password.length < 10)
+    return res
+      .status(400)
+      .json({
+        error: "Use a valid email and a password of at least 10 characters",
+      });
+  const user = await User.create({
+    email,
+    passwordHash: await argon2.hash(password),
+  });
+  issueSession(res, user);
+  res.status(201).json({ email: user.email });
+});
+r.post("/login", limiter, async (req, res) => {
+  const user = await User.findOne({
+    email: String(req.body.email || "").toLowerCase(),
+  });
+  if (
+    !user ||
+    !(await argon2.verify(user.passwordHash, String(req.body.password || "")))
+  )
+    return res.status(401).json({ error: "Invalid credentials" });
+  issueSession(res, user);
+  res.json({ email: user.email });
+});
+r.get("/me", requireAuth, (req, res) => res.json({ email: req.user.email }));
+r.post("/change-password", requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (
+    newPassword?.length < 10 ||
+    !(await argon2.verify(req.user.passwordHash, currentPassword || ""))
+  )
+    return res
+      .status(400)
+      .json({
+        error: "Current password is incorrect or new password is too short",
+      });
+  req.user.passwordHash = await argon2.hash(newPassword);
+  req.user.sessionVersion += 1;
+  await req.user.save();
+  issueSession(res, req.user);
+  res.json({ ok: true });
+});
+r.post("/logout", (req, res) => {
+  res.clearCookie("portfolio_session");
+  res.json({ ok: true });
+});
+export default r;
