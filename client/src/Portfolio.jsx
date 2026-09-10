@@ -1241,20 +1241,27 @@ function Hobbies({ items }) {
 function Contact({ data = {} }) {
   const [status, setStatus] = useState("");
   async function submit(e) {
-    e.preventDefault();
-    setStatus("Sending…");
-    const body = Object.fromEntries(new FormData(e.currentTarget));
-    try {
-      await api("/content/messages", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      e.currentTarget.reset();
-      setStatus("Message received. I’ll get back to you soon.");
-    } catch (e) {
-      setStatus(e.message);
-    }
+  e.preventDefault();
+
+  // Save the form reference before the async request
+  const form = e.currentTarget;
+
+  setStatus("Sending…");
+
+  const body = Object.fromEntries(new FormData(form));
+
+  try {
+    await api("/content/messages", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+
+    form.reset();
+    setStatus("Message received. I’ll get back to you soon.");
+  } catch (error) {
+    setStatus(error.message || "Unable to send the message.");
   }
+}
   return (
     <>
       <div className="grid gap-12 lg:grid-cols-2">
