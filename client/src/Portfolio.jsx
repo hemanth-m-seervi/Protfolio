@@ -668,15 +668,27 @@ function Projects({ items = [] }) {
     ),
   ];
 
-  const [activeCategory, setActiveCategory] = useState(categories[0] || "");
+  const DEFAULT_CATEGORY = "Frontend Application";
+
+const [activeCategory, setActiveCategory] = useState(
+  DEFAULT_CATEGORY,
+);
 
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    if (categories.length && !categories.includes(activeCategory)) {
-      setActiveCategory(categories[0]);
-    }
-  }, [items, activeCategory]);
+  if (!categories.length) return;
+
+  if (!categories.includes(activeCategory)) {
+    const defaultCategory = categories.find(
+      (category) =>
+        category.toLowerCase() ===
+        DEFAULT_CATEGORY.toLowerCase(),
+    );
+
+    setActiveCategory(defaultCategory || categories[0]);
+  }
+}, [items, activeCategory]);
 
   const visibleProjects = items.filter(
     (project) => project.category?.trim() === activeCategory,
