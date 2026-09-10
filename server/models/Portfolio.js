@@ -99,6 +99,7 @@ const portfolioSchema = new mongoose.Schema(
       phone: String,
       linkedin: String,
       github: String,
+      leetcode: String,
       location: String,
       formEnabled: { type: Boolean, default: true },
     },

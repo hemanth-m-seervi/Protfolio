@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import ResumePdf from "./components/ResumePdf";
 import AboutSection from "./components/AboutSection";
+import { createPortal } from "react-dom";
 import {
   FaCss3Alt,
   FaGithub,
@@ -31,6 +32,7 @@ import {
   SiTensorflow,
   SiTypescript,
   SiVercel,
+  SiLeetcode,
 } from "react-icons/si";
 
 import { VscVscode } from "react-icons/vsc";
@@ -49,6 +51,7 @@ import {
   ScanSearch,
   ServerCog,
   TableProperties,
+  ChevronLeft,
 } from "lucide-react";
 
 import { TbApi, TbBrandCSharp } from "react-icons/tb";
@@ -57,7 +60,6 @@ import {
   motion,
   useScroll,
   useSpring,
-  useTransform,
 } from "framer-motion";
 import {
   ArrowDownRight,
@@ -112,7 +114,7 @@ const iconMap = {
   "rest api": Code2,
   "rest apis": Code2,
   tailwind: SiTailwindcss,
-    "tailwind css": SiTailwindcss,
+  "tailwind css": SiTailwindcss,
 
   // Databases
   mongodb: SiMongodb,
@@ -487,27 +489,27 @@ function HeroVisual({ profile }) {
   );
 }
 function Chapter({ id, number, children }) {
-  const { scrollYProgress } = useScroll();
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.985]);
   return (
-    <motion.section
+    <section
       id={id}
-      style={{ scale }}
       className="chapter bg-[#080d14] py-14 md:py-20"
     >
       <div className="container">
         <div className="mb-8 flex items-center gap-4">
           <span className="label">{number} /</span>
+
           <motion.div
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
             viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
             className="h-px flex-1 origin-left bg-gradient-to-r from-cyan-300/60 to-transparent"
           />
         </div>
+
         {children}
       </div>
-    </motion.section>
+    </section>
   );
 }
 function Reveal({ children, className = "" }) {
@@ -659,80 +661,79 @@ function Tech({ categories = [] }) {
     </>
   );
 }
-function Projects({ items }) {
-  const [filter, setFilter] = useState("All");
+function Projects({ items = [] }) {
+  const categories = [
+    ...new Set(
+      items.map((project) => project.category?.trim()).filter(Boolean),
+    ),
+  ];
+
+  const [activeCategory, setActiveCategory] = useState(categories[0] || "");
+
   const [selected, setSelected] = useState(null);
-  const cats = ["All", ...new Set(items.map((x) => x.category))];
-  const shown =
-    filter === "All" ? items : items.filter((x) => x.category === filter);
+
+  useEffect(() => {
+    if (categories.length && !categories.includes(activeCategory)) {
+      setActiveCategory(categories[0]);
+    }
+  }, [items, activeCategory]);
+
+  const visibleProjects = items.filter(
+    (project) => project.category?.trim() === activeCategory,
+  );
+
+  if (!categories.length) return null;
+
   return (
     <>
       <Reveal>
-        <p className="label">Projects</p>
-        <h2 className="mt-5 text-5xl font-semibold">Things I have built.</h2>
+        <p className="label">Selected work</p>
+
+        <h2 className="mt-5 text-5xl font-semibold">
+          Projects built across different domains.
+        </h2>
       </Reveal>
-      <div className="mt-10 flex gap-2 overflow-x-auto pb-3">
-        {cats.map((x) => (
+
+      {/* Category Tabs */}
+      <div className="mt-10 flex items-center gap-10 border-b border-white/10">
+        {categories.map((category) => (
           <button
-            onClick={() => setFilter(x)}
-            className={`btn shrink-0 ${filter === x ? "border-cyan-300 text-cyan-200" : ""}`}
-            key={x}
+            type="button"
+            key={category}
+            onClick={() => setActiveCategory(category)}
+            className={`relative pb-4 text-sm font-semibold uppercase tracking-wide transition-all duration-300 ${
+              activeCategory === category
+                ? "text-cyan-300"
+                : "text-slate-500 hover:text-slate-300"
+            }`}
           >
-            {x}
+            {category}
+
+            {activeCategory === category && (
+              <span className="absolute bottom-0 left-0 h-[3px] w-full bg-cyan-300" />
+            )}
           </button>
         ))}
       </div>
-      <motion.div
-        layout
-        className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
-      >
-        {shown.map((p, i) => (
-          <motion.button
-            layoutId={`project-${p._id}`}
-            onClick={() => setSelected(p)}
-            key={p._id}
-            whileHover={{ scale: 1.02, y: -5 }}
-            className="glass group overflow-hidden rounded-3xl text-left"
-          >
-            <div className="relative aspect-[16/9] overflow-hidden bg-[#0d1822]">
-              {p.coverImage?.url ? (
-                <img
-                  src={p.coverImage.url}
-                  alt=""
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
-                />
-              ) : (
-                <div className="grid h-full place-items-center">
-                  <Braces size={50} className="text-cyan-300/60" />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#071019] to-transparent" />
-            </div>
-            <div className="p-5">
-              <div className="flex justify-between">
-                <span className="label">
-                  {String(i + 1).padStart(2, "0")} / {p.category}
-                </span>
-                <ArrowUpRight className="text-cyan-300" />
-              </div>
-              <h3 className="mt-5 text-2xl font-medium">{p.name}</h3>
-              <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-400">
-                {p.shortDescription}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {p.technologies?.map((t) => (
-                  <span
-                    key={t}
-                    className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-300"
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </motion.button>
-        ))}
-      </motion.div>
+
+      {/* Only selected category is displayed */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeCategory}
+          initial={{ opacity: 0, x: 35 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -35 }}
+          transition={{ duration: 0.35 }}
+          className="mt-10"
+        >
+          <ProjectSlider
+            category={activeCategory}
+            projects={visibleProjects}
+            openProject={setSelected}
+          />
+        </motion.div>
+      </AnimatePresence>
+
       <AnimatePresence>
         {selected && (
           <ProjectModal project={selected} close={() => setSelected(null)} />
@@ -741,115 +742,276 @@ function Projects({ items }) {
     </>
   );
 }
+function ProjectSlider({ category, projects, openProject }) {
+  const sliderRef = useRef(null);
+  const [paused, setPaused] = useState(false);
+
+  function slide(direction) {
+    const slider = sliderRef.current;
+    if (!slider) return;
+
+    slider.scrollBy({
+      left: direction * Math.min(slider.clientWidth * 0.85, 900),
+      behavior: "smooth",
+    });
+  }
+
+  useEffect(() => {
+    if (paused || projects.length <= 1) return;
+
+    const timer = setInterval(() => {
+      const slider = sliderRef.current;
+      if (!slider) return;
+
+      const reachedEnd =
+        slider.scrollLeft + slider.clientWidth >= slider.scrollWidth - 20;
+
+      slider.scrollTo({
+        left: reachedEnd ? 0 : slider.scrollLeft + 360,
+        behavior: "smooth",
+      });
+    }, 4000);
+
+    return () => clearInterval(timer);
+  }, [paused, projects.length]);
+
+  return (
+    <Reveal>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        {projects.length > 1 && (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => slide(-1)}
+              aria-label={`Previous ${category} projects`}
+              className="project-slider-arrow"
+            >
+              <ChevronLeft size={19} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => slide(1)}
+              aria-label={`Next ${category} projects`}
+              className="project-slider-arrow"
+            >
+              <ChevronRight size={19} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div
+        ref={sliderRef}
+        className="project-slider"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onTouchStart={() => setPaused(true)}
+      >
+        {projects.map((project, index) => (
+          <motion.button
+            type="button"
+            key={project._id}
+            onClick={() => openProject(project)}
+            whileHover={{
+              y: -8,
+              scale: 1.035,
+            }}
+            whileTap={{ scale: 0.98 }}
+            className="project-slide-card glass group"
+          >
+            <div className="relative aspect-video overflow-hidden bg-[#0d1822]">
+              {project.coverImage?.url ? (
+                <img
+                  src={project.coverImage.url}
+                  alt={project.name}
+                  className="h-full w-full object-cover transition duration-700 group-hover:scale-110"
+                />
+              ) : (
+                <div className="grid h-full place-items-center">
+                  <Braces size={44} className="text-cyan-300/50" />
+                </div>
+              )}
+
+              <div className="absolute inset-0 bg-gradient-to-t from-[#071019] via-transparent to-transparent" />
+
+              <span className="absolute left-4 top-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-cyan-200 backdrop-blur">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+            </div>
+
+            <div className="p-5 text-left">
+              <p className="label">{project.category}</p>
+
+              <h3 className="mt-4 text-xl font-semibold">{project.name}</h3>
+
+              <p className="mt-3 line-clamp-2 min-h-12 text-sm leading-6 text-slate-400">
+                {project.shortDescription}
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                {project.technologies?.slice(0, 4).map((technology) => (
+                  <span
+                    key={technology}
+                    className="rounded-full bg-white/5 px-3 py-1 text-[11px] text-slate-300"
+                  >
+                    {technology}
+                  </span>
+                ))}
+              </div>
+
+              <span className="mt-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-cyan-300">
+                View project
+                <ArrowUpRight size={14} />
+              </span>
+            </div>
+          </motion.button>
+        ))}
+      </div>
+    </Reveal>
+  );
+}
 function ProjectModal({ project, close }) {
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") close();
-    };
+    const previousOverflow = document.body.style.overflow;
 
+    function handleKeyDown(event) {
+      if (event.key === "Escape") {
+        close();
+      }
+    }
+
+    // Prevent the website behind the modal from scrolling
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [close]);
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) close();
+        if (event.target === event.currentTarget) {
+          close();
+        }
       }}
-      className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-black/80 p-4 backdrop-blur-xl"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 p-4 backdrop-blur-xl"
     >
       <motion.article
-        layoutId={`project-${project._id}`}
-        style={{ maxWidth: "950px" }}
-        className="glass relative grid max-h-[88vh] w-full overflow-hidden rounded-3xl md:grid-cols-[42%_58%]"
+        initial={{
+          opacity: 0,
+          y: 30,
+          scale: 0.96,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+        }}
+        exit={{
+          opacity: 0,
+          y: 20,
+          scale: 0.97,
+        }}
+        transition={{
+          duration: 0.3,
+          ease: "easeOut",
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+        className="glass relative grid h-[90dvh] max-h-[720px] w-full max-w-[950px] grid-rows-[220px_minmax(0,1fr)] overflow-hidden rounded-3xl md:grid-cols-[42%_58%] md:grid-rows-1"
       >
+        {/* Close button */}
         <button
           type="button"
           onClick={close}
           aria-label="Close project"
-          className="glass absolute right-4 top-4 z-20 rounded-full p-3 transition hover:border-cyan-300 hover:text-cyan-200"
+          className="glass absolute right-4 top-4 z-30 rounded-full p-3 transition hover:border-cyan-300 hover:text-cyan-200"
         >
           <X size={19} />
         </button>
 
-        <div className="h-56 overflow-hidden bg-[#0d1822] md:h-auto">
+        {/* Fixed image panel */}
+        <div className="relative min-h-0 overflow-hidden bg-[#05080d]">
           {project.coverImage?.url ? (
             <img
               src={project.coverImage.url}
               alt={project.name}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           ) : (
-            <div className="grid h-full min-h-64 place-items-center">
-              <Braces size={55} className="text-cyan-300/60" />
+            <div className="grid h-full place-items-center">
+              <Braces size={56} className="text-cyan-300/50" />
             </div>
           )}
+
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         </div>
 
-        <div className="overflow-y-auto p-6 md:p-9">
+        {/* Independently scrollable project information */}
+        <div className="project-modal-content min-h-0 overflow-y-auto p-6 md:p-9">
           <p className="label">
             {project.category}
             {project.year && ` / ${project.year}`}
           </p>
 
-          <h3 className="mt-4 pr-10 text-3xl font-semibold">
-            {project.name}
-          </h3>
+          <h3 className="mt-5 pr-12 text-3xl font-semibold">{project.name}</h3>
 
-          <p className="mt-5 text-sm leading-7 text-slate-300 md:text-base">
+          <p className="mt-5 whitespace-pre-line leading-7 text-slate-300">
             {project.description || project.shortDescription}
           </p>
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            {project.technologies?.map((technology) => (
-              <span
-                className="rounded-full border border-white/15 px-3 py-1 text-xs"
-                key={technology}
-              >
-                {technology}
-              </span>
-            ))}
-          </div>
+          {project.technologies?.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              {project.technologies.map((technology) => (
+                <span
+                  key={technology}
+                  className="rounded-full border border-white/15 px-3 py-1 text-xs text-slate-300"
+                >
+                  {technology}
+                </span>
+              ))}
+            </div>
+          )}
 
-          <div className="mt-7 flex flex-wrap gap-3">
-            {project.githubUrl && (
-              <a
-                className="btn"
-                href={project.githubUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Github size={16} />
-                GitHub
-              </a>
-            )}
+          {(project.githubUrl || project.demoUrl) && (
+            <div className="mt-8 flex flex-wrap gap-3 pb-2">
+              {project.githubUrl && (
+                <a
+                  className="btn"
+                  href={project.githubUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <Github size={16} />
+                  GitHub
+                </a>
+              )}
 
-            {project.demoUrl && (
-              <a
-                className="btn"
-                href={project.demoUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Live demo
-                <ExternalLink size={15} />
-              </a>
-            )}
-          </div>
+              {project.demoUrl && (
+                <a
+                  className="btn"
+                  href={project.demoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Live demo
+                  <ExternalLink size={15} />
+                </a>
+              )}
+            </div>
+          )}
         </div>
       </motion.article>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
-
 
 function Certificates({ items }) {
   const [open, setOpen] = useState(null);
@@ -863,7 +1025,7 @@ function Certificates({ items }) {
         {items.map((x, i) => (
           <Reveal
             key={x._id}
-            className="glass grid overflow-hidden rounded-3xl lg:grid-cols-2"
+            className="glass mx-auto grid w-[96%] overflow-hidden rounded-3xl lg:grid-cols-2"
           >
             <button
               onClick={() => setOpen(x)}
@@ -872,10 +1034,10 @@ function Certificates({ items }) {
               <img
                 src={x.image?.url}
                 alt={x.name}
-                className="h-full min-h-72 w-full object-contain transition duration-700 hover:scale-105"
+                className="h-[260px] w-[85%] object-contain mx-auto transition duration-700 hover:scale-105"
               />
             </button>
-            <div className="p-8 md:p-12">
+            <div className="p-7 md:p-9">
               <p className="label">
                 {x.year} {x.issuer && `/ ${x.issuer}`}
               </p>
@@ -1113,6 +1275,17 @@ function Contact({ data = {} }) {
               <a className="flex items-center gap-3" href={data.github}>
                 <Github className="text-cyan-300" />
                 GitHub
+              </a>
+            )}
+            {data.leetcode && (
+              <a
+                className="flex items-center gap-3 transition hover:text-cyan-200"
+                href={data.leetcode}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <SiLeetcode className="text-cyan-300" size={22} />
+                LeetCode
               </a>
             )}
           </div>

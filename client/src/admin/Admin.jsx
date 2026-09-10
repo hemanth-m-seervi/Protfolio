@@ -229,9 +229,7 @@ async function savePortfolio(payload, refresh, notice) {
   refresh();
 }
 function Profile({ data, refresh, notice }) {
-  const [profileImage, setProfileImage] = useState(
-    data?.about?.image || null,
-  );
+  const [profileImage, setProfileImage] = useState(data?.about?.image || null);
   const [uploading, setUploading] = useState(false);
 
   async function handleImage(file) {
@@ -280,6 +278,7 @@ function Profile({ data, refresh, notice }) {
           email: f.email,
           linkedin: f.linkedin,
           github: f.github,
+          leetcode: f.leetcode,
           location: f.location,
           formEnabled: true,
         },
@@ -297,11 +296,7 @@ function Profile({ data, refresh, notice }) {
       />
 
       <div className="mt-7 grid gap-4 md:grid-cols-2">
-        <Field
-          label="Full name"
-          name="name"
-          value={data?.profile?.name}
-        />
+        <Field label="Full name" name="name" value={data?.profile?.name} />
 
         <Field
           label="Availability"
@@ -369,9 +364,7 @@ function Profile({ data, refresh, notice }) {
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 disabled={uploading}
-                onChange={(event) =>
-                  handleImage(event.target.files?.[0])
-                }
+                onChange={(event) => handleImage(event.target.files?.[0])}
               />
             </label>
           </div>
@@ -382,11 +375,7 @@ function Profile({ data, refresh, notice }) {
           </p>
         </div>
 
-        <Field
-          label="Email"
-          name="email"
-          value={data?.contact?.email}
-        />
+        <Field label="Email" name="email" value={data?.contact?.email} />
 
         <Field
           label="Location"
@@ -400,10 +389,13 @@ function Profile({ data, refresh, notice }) {
           value={data?.contact?.linkedin}
         />
 
+        <Field label="GitHub URL" name="github" value={data?.contact?.github} />
+
         <Field
-          label="GitHub URL"
-          name="github"
-          value={data?.contact?.github}
+          label="LeetCode URL"
+          name="leetcode"
+          type="url"
+          value={data?.contact?.leetcode}
         />
       </div>
 
