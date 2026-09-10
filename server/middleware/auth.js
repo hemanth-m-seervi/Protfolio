@@ -27,5 +27,6 @@ export function issueSession(res, user) {
     secure: true,
     sameSite: "none",
     maxAge: 7 * 864e5,
+    path: "/",
   });
 }
