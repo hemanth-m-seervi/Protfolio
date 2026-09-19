@@ -51,10 +51,11 @@ app.use(
 );
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
+app.get('/api/health', (_req, res) => res.status(200).send('OK'));
 app.use('/api/auth', auth);
 app.use('/api/content', content);
 app.use('/api/upload', upload);
-app.get('/api/health', (_req, res) => res.status(200).send('OK'));
+
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: err.message || 'Something went wrong' });
